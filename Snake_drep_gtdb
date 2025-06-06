@@ -1,0 +1,74 @@
+import os
+from os.path import join
+import numpy as np
+import pandas as pd
+
+if not os.path.exists("snakemake_logs"):
+    os.mkdir("snakemake_logs")
+
+if not os.path.exists("sbatch_out"):
+    os.makedirs("sbatch_out")
+
+if not os.path.exists("swarm_out"):
+    os.makedirs("swarm_out")
+
+data,=glob_wildcards("/data/ery2/skin_mag/passed_bins/{sample}.fa")
+data=np.sort(data[0:1000])
+print(data)
+
+
+concentrate_bins="/data/ery2/skin_mag/passed_bins"
+drep_path="/data/ery2/skin_mag/drep"
+gtdb_path="/data/ery2/skin_mag/gtdb"
+
+all_outfiles = [
+     join(drep_path,"done.txt"),
+     join(gtdb_path,"done.txt")
+]
+
+
+rule all:
+    input:
+        all_outfiles
+
+rule dRep1:
+    input:
+        expand(join(concentrate_bins,"{sample}.fa"),sample=data)
+    output:
+        outfile=join(drep_path, "done.txt")
+    params:
+        input1="/data/ery2/skin_mag/asu_data/drep_in.txt",
+        outdir1=join(drep_path,"drep_out"),
+        info="/data/ery2/skin_mag/asu_data/pro_qual.csv"
+    threads:
+        6
+    group:
+        "dRep"
+    shell:
+        """
+        rm -rf {params.outdir1}
+        module load drep
+        dRep dereplicate {params.outdir1} -g {input} -p {threads} --genomeInfo  {params.info}  --comp 50 -con 10
+        touch {output.outfile}
+        """
+rule gtdb:
+    input:
+        join(drep_path,"done.txt")
+    output:
+        outfile=join(gtdb_path, "done.txt")
+    params:
+        input1="/data/ery2/skin_mag/drep/drep_out/dereplicated_genomes",
+        outdir1=join(gtdb_path,"gtdb_out"),
+        mash="/refdata/mash/mash_16_5000.msh",
+        temp=join(gtdb_path,"temp")
+    threads:
+        10
+    group:
+        "gtdb"
+    shell:
+        """
+        mkdir {params.temp}
+        module load gtdb-tk
+        gtdbtk classify_wf --genome_dir {params.input1} --extension fa --out_dir {params.outdir1} --cpus 6 --mash_db {params.mash} --tmpdir {params.temp} --force  --pplacer_cpus 10  --full_tree
+        touch {output.outfile}
+        """

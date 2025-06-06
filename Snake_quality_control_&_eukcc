@@ -1,0 +1,140 @@
+import os
+from os.path import join
+import numpy as np
+import pandas as pd
+
+if not os.path.exists("snakemake_logs"):
+    os.mkdir("snakemake_logs")
+
+if not os.path.exists("sbatch_out"):
+    os.makedirs("sbatch_out")
+
+if not os.path.exists("swarm_out"):
+    os.makedirs("swarm_out")
+
+
+data,=glob_wildcards("/data/ery2/skin_mag/asu_data/concentrate_bins/{sample}.fa")
+data=np.sort(data[0:254])
+print(data)
+
+
+mag,=glob_wildcards("/data/ery2/skin_mag/asu_data/eukcc_bins/{sample}.fa")
+mag=np.sort(mag[0:555])
+print(mag)
+
+
+GUNC_DB="/data/ery2/kits/gunc_db/gunc_db_progenomes2.1.dmnd"
+checkM2_dir="/data/ery2/skin_mag/asu_data/checkM2"
+gunc_path="/data/ery2/skin_mag/asu_data/gunc"
+concentrate_bins="/data/ery2/skin_mag/asu_data/concentrate_bins"
+infernal_path="/data/ery2/skin_mag/asu_data/infernal"
+trna_path="/data/ery2/skin_mag/asu_data/trna"
+eukcc_path="/data/ery2/skin_mag/asu_data/eukcc_out"
+eukcc_bins="/data/ery2/skin_mag/asu_data/eukcc_bins"
+
+all_outfiles = [
+#     join(gunc_path,"done.txt"),
+     expand(join(gunc_path,"{sample}"),sample=data),
+     expand(join(gunc_path,"{sample}/done.txt"),sample=data),
+     join(checkM2_dir,"done.txt"),
+     expand(join(infernal_path,"out/{sample}_done.txt"),sample=data),
+     expand(join(trna_path,"out/{sample}_done.txt"),sample=data),
+     expand(join(eukcc_path, "out/{sample}_done.txt"),sample=mag)
+]
+
+
+rule all:
+    input:
+        all_outfiles
+rule guncc:
+  input:
+        join(concentrate_bins,"{sample}.fa")
+  output:
+        out1=join(gunc_path,"{sample}"),
+        out2=join(gunc_path,"{sample}/done.txt")
+  params:
+        indir1=join(concentrate_bins,"{sample}.fa"),
+        outdir1=join(gunc_path,"{sample}"),
+        outdir2=join(gunc_path, "{sample}/done.txt"),
+        db=GUNC_DB
+  group:
+        "gunc"
+  shell:
+        """
+        gunc run --input_fasta {input} --out_dir {params.outdir1} --db_file {params.db}
+        touch {params.outdir2}
+        """
+rule checkM2:
+    input:
+        expand(join(concentrate_bins,"{sample}.fa"),sample=data)
+    output:
+        outfile=join(checkM2_dir, "done.txt")
+    params:
+        input1=concentrate_bins,
+        outdir1="/data/ery2/skin_mag/asu_data/checkM2/combined_out",
+    threads:
+        6
+    group:
+        "checkM2"
+    shell:
+        """
+        rm -rf {params.outdir1}
+        checkm2 predict --threads {threads} --input {params.input1} -x fa --output-directory {params.outdir1}
+        touch {output.outfile}
+        """
+rule infernal:
+  input:
+        expand(join(concentrate_bins,"{sample}.fa"),sample=data)
+  output:
+        join(infernal_path, "out/{sample}_done.txt")
+  params:
+        input=join(concentrate_bins, "{sample}.fa"),
+        outdir1="/data/ery2/skin_mag/asu_data/infernal/out",
+        out=join(infernal_path, "{sample}.txt"),
+        db="/data/ery2/database/Rfam/Rfam.5S.16S.23S.cm",
+        length="1000"
+  group:
+        "infernal"
+  shell:
+        """
+        module load infernal
+        mkdir -p {params.outdir1}
+        cmsearch -Z {params.length} --hmmonly --cut_ga --noali --tblout {params.out} {params.db} {params.input}
+        touch {output}
+        """
+rule trna:
+  input:
+        expand(join(concentrate_bins,"{sample}.fa"),sample=data)
+  output:
+        join(trna_path, "out/{sample}_done.txt")
+  params:
+        input=join(concentrate_bins, "{sample}.fa"),
+        out=join(trna_path, "{sample}.txt"),
+  group:
+        "trna"
+  shell:
+        """
+        module load trnascan-se
+        tRNAscan-SE -B -Q {params.input} > {params.out}
+        touch {output}
+        """
+rule eukcc:
+    input:
+        expand(join(eukcc_bins,"{sample}.fa"),sample=mag)
+    output:
+        outfile=join(eukcc_path, "out/{sample}_done.txt")
+    params:
+        input1=join(eukcc_bins,"{sample}.fa"),
+        outdir1=join(eukcc_path,"{sample}"),
+        db="/data/ery2/kits/eukccdb/eukcc2_db_ver_1.1"
+    threads:
+        6
+    singularity:
+        "docker://quay.io/microbiome-informatics/eukcc"
+    group:
+        "eukcc"
+    shell:
+        """
+        eukcc single  {params.input1} --out {params.outdir1} --db {params.db} --threads {threads}
+        touch {output.outfile}
+        """

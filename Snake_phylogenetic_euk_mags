@@ -1,0 +1,70 @@
+import os
+from os.path import join
+import numpy as np
+import pandas as pd
+
+if not os.path.exists("snakemake_logs"):
+    os.mkdir("snakemake_logs")
+
+if not os.path.exists("sbatch_out"):
+    os.makedirs("sbatch_out")
+
+if not os.path.exists("swarm_out"):
+    os.makedirs("swarm_out")
+
+
+
+library_id,=glob_wildcards("/data/ery2/skin_mag/drep_smgc_msia_asu/drep_out/dereplicated_genomes/euk_mag/{sample}.fa")
+library_id=np.sort(library_id[0:20])
+print(library_id)
+
+
+euk_bins="/data/ery2/skin_mag/drep_smgc_msia_asu/drep_out/dereplicated_genomes/euk_mag"
+#drep_path="/data/ery2/skin_mag/drep_msia_only"
+busco_path="/data/ery2/skin_mag/busco_0404_alldb"
+busco_phylo="/data/ery2/skin_mag/busco_phylo"
+
+all_outfiles = [
+     expand(join(busco_path,"{sample}_done.txt"),sample=library_id),
+     directory(join(busco_path, "busco_phylo"))
+]
+
+
+rule all:
+    input:
+        all_outfiles
+rule BUSCO:
+    input:
+        join(euk_bins,"{sample}.fa")
+    output:
+        outfile=join(busco_path, "{sample}_done.txt")
+    threads:
+        6
+    params:
+        dir="busco_0404_alldb/{sample}_out"
+    group:
+        "BUSCO"
+    shell:
+        """
+        module load busco
+        mkdir {params.dir}
+        busco -i {input} -c {threads} -f -m geno --auto-lineage-euk --out {params.dir}
+        touch {output.outfile}
+        """
+rule BUSCO_phylogenomics:
+    input:
+        expand(join(busco_path,"{sample}_done.txt"),sample=library_id)
+    output:
+        outdir=directory(join(busco_path, "busco_phylo"))
+    params:
+        indir=expand(join(busco_path, "{sample}"), sample=library_id)
+    threads:
+        6
+    group:
+        "BUSCO_phylo"
+    conda:
+        "BUSCO_phylo"
+    shell:
+        """
+        python /data/ery2/kits/BUSCO_phylogenomics/BUSCO_phylogenomics.py -i {params.indir} -o {output.outdir} -t {threads} --nt -psc 50 --gene_tree_program iqtree
+        """

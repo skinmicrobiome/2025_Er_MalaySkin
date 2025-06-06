@@ -1,0 +1,59 @@
+import os
+from os.path import join
+import numpy as np
+import pandas as pd
+
+if not os.path.exists("snakemake_logs"):
+    os.mkdir("snakemake_logs")
+
+if not os.path.exists("sbatch_out"):
+    os.makedirs("sbatch_out")
+
+if not os.path.exists("swarm_out"):
+    os.makedirs("swarm_out")
+
+library_id,=glob_wildcards("/data/ery2/skin_mag/pan_seq/unique_staph/{sample}.fa")
+library_id=np.sort(library_id[0:10])
+print(library_id)
+
+shot1,=glob_wildcards("/data/ery2/skin_batch1/split_seq/{sample}_1.fastq")
+shot1=np.sort(shot1[0:460])
+print(shot1)
+
+shot2,=glob_wildcards("/data/ery2/us_analysis2/split_seq/R1_{sample}.qc.nohuman.fastq.gz")
+shot2=np.sort(shot2[0:37])
+print(shot2)
+
+
+shot_path1="/data/ery2/skin_batch1/split_seq/"
+seq_path = "/data/ery2/skin_mag/pan_seq/unique_staph"
+coverm_path2="/data/ery2/skin_mag/pan_seq/coverm_msia_cbins"
+
+
+all_outfiles = [
+     expand(join(coverm_path, "{sample}.tsv"), sample=shot2),
+     expand(join(coverm_path2, "{sample}.tsv"), sample=shot1),
+]
+
+
+rule all:
+    input:
+        all_outfiles
+rule coverm2:
+    input:
+        input1=join(shot_path1,"{sample}_1.fastq"),
+        input2=join(shot_path1,"{sample}_2.fastq"),
+    output:
+         b=join(coverm_path2, "{sample}.tsv"),
+    params:
+         db2=seq_path,
+    group:
+        "coverm"
+    conda:
+        "coverm"
+    threads:
+        2
+    shell:
+        """
+        coverm genome -1 {input.input1} -2 {input.input2}  --genome-fasta-directory {params.db2} -o {output.b} -x fa --min-covered-fraction 30
+        """

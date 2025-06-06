@@ -1,0 +1,92 @@
+,X,id2,location,sp2
+1,1,metawrap_0_100_bins_G017_bin.138,Village G,Corynebacterium_incognitum
+2,2,metawrap_0_100_bins_G025_bin.20,Village G,Novel_OA
+3,3,metawrap_0_100_bins_G025_bin.7,Village G,Novel_OA
+4,4,metawrap_0_100_bins_D029_bin.22,Village  D,Novel_OA
+5,5,metawrap_0_100_bins_D032_bin.37,Village  D,Novel_OA
+6,6,metawrap_0_100_bins_D035_bin.39,Village  D,Novel_OA
+7,7,metawrap_0_100_bins_D036_bin.30,Village  D,Corynebacterium_faecigallinarum
+8,8,metawrap_0_100_bins_G043_bin.117,Village G,Novel_OA
+9,9,metawrap_0_100_bins_AB07_bin.31,Kuala_Lumpur,Novel_UC
+10,10,metawrap_0_100_bins_AB12_bin.31,Kuala_Koh,Novel_OA
+11,11,metawrap_0_100_bins_AB13_bin.21,Kuala_Koh,Novel_OA
+12,12,metawrap_0_100_bins_C02_bin.19,Village C,Corynebacterium_tuberculostearicum
+13,13,metawrap_0_100_bins_C014_bin.73,Village C,Corynebacterium_accolens
+14,14,metawrap_0_100_bins_C017_bin.14,Village C,Novel_OA
+15,15,metawrap_0_100_bins_C34_bin.22,Village C,Novel_OA
+16,16,metawrap_0_100_bins_UM15_bin.22,Kuala_Lumpur,Novel_UC
+17,17,metawrap_0_100_bins_UM17_bin.46,Kuala_Lumpur,Novel_UC
+18,18,metawrap_0_100_bins_UM21_bin.1,Kuala_Lumpur,Corynebacterium_mucifaciens
+19,19,SMGC_102,Washington_DC,Novel_UC
+20,20,SMGC_115,Washington_DC,Corynebacterium_resistens
+21,21,SMGC_142,Washington_DC,Corynebacterium_sp001815935
+22,22,SMGC_151,Washington_DC,Corynebacterium_massiliense
+23,23,SMGC_155,Washington_DC,Novel_UC
+24,24,SMGC_157,Washington_DC,Novel_UC
+25,25,SMGC_164,Washington_DC,Corynebacterium_pyruviciproducens
+26,26,SMGC_177,Washington_DC,Novel_UC
+27,27,SMGC_18,Washington_DC,Corynebacterium_frankenforstense
+28,28,SMGC_19,Washington_DC,Corynebacterium_otitidis
+29,29,SMGC_197,Washington_DC,Corynebacterium_appendicis
+30,30,SMGC_213,Washington_DC,Novel_UC
+31,31,SMGC_263,Washington_DC,Novel_UC
+32,32,SMGC_264,Washington_DC,Corynebacterium_glaucum
+33,33,SMGC_270,Washington_DC,Novel_UC
+34,34,SMGC_271,Washington_DC,Novel_UC
+35,35,SMGC_272,Washington_DC,Novel_UC
+36,36,SMGC_276,Washington_DC,Novel_UC
+37,37,SMGC_292,Washington_DC,Corynebacterium_glucuronolyticum
+38,38,SMGC_301,Washington_DC,Corynebacterium_sp900232865
+39,39,SMGC_304,Washington_DC,Novel_UC
+40,40,SMGC_32,Washington_DC,Novel_UC
+41,41,SMGC_323,Washington_DC,Corynebacterium_kroppenstedtii_B
+42,42,SMGC_337,Washington_DC,Novel_UC
+43,43,SMGC_338,Washington_DC,Corynebacterium_amycolatum
+44,44,SMGC_342,Washington_DC,Corynebacterium_minutissimum_A
+45,45,SMGC_35,Washington_DC,Corynebacterium_sp001812805
+46,46,SMGC_360,Washington_DC,Novel_UC
+47,47,SMGC_38,Washington_DC,Novel_UC
+48,48,SMGC_399,Washington_DC,Novel_UC
+49,49,SMGC_43,Washington_DC,Corynebacterium_matruchotii
+50,50,SMGC_470,Washington_DC,Novel_UC
+51,51,SMGC_507,Washington_DC,Corynebacterium_jeikeium_A
+52,52,SMGC_51,Washington_DC,Corynebacterium_coyleae
+53,53,SMGC_523,Washington_DC,Novel_UC
+54,54,SMGC_531,Washington_DC,Novel_UC
+55,55,SMGC_56,Washington_DC,Corynebacterium_afermentans
+56,56,SMGC_563,Washington_DC,Corynebacterium_sp001831515
+57,57,SMGC_591,Washington_DC,Corynebacterium_falsenii_A
+58,58,SMGC_616,Washington_DC,Novel_UC
+59,59,SMGC_617,Washington_DC,Novel_UC
+60,60,SMGC_7,Washington_DC,Novel_UC
+61,61,SMGC_75,Washington_DC,Corynebacterium_afermentans
+62,62,SMGC_76,Washington_DC,Novel_UC
+63,63,SMGC_77,Washington_DC,Corynebacterium_aurimucosum_C
+64,64,SMGC_78,Washington_DC,Corynebacterium_singulare
+65,65,SMGC_79,Washington_DC,Corynebacterium_hadale
+66,66,SMGC_81,Washington_DC,Corynebacterium_imitans
+67,67,SMGC_82,Washington_DC,Corynebacterium_sp001807485
+68,68,SMGC_83,Washington_DC,Novel_UC
+69,69,SMGC_84,Washington_DC,Novel_UC
+70,70,SMGC_85,Washington_DC,Corynebacterium_minutissimum
+71,71,SMGC_86,Washington_DC,Corynebacterium_propinquum
+72,72,SMGC_87,Washington_DC,Corynebacterium_pseudodiphtheriticum
+73,73,SMGC_88,Washington_DC,Corynebacterium_simulans
+74,74,SMGC_89,Washington_DC,Corynebacterium_striatum
+75,75,SMGC_9,Washington_DC,Corynebacterium_riegelii
+76,76,SMGC_91,Washington_DC,Novel_UC
+77,77,SMGC_93,Washington_DC,Corynebacterium_freneyi
+78,78,metawrap_0_100_bins_UM14_bin.46,Kuala_Lumpur,Corynebacterium_appendicis
+79,79,metawrap_0_100_bins_UM01_bin.1,Kuala_Lumpur,Corynebacterium_amycolatum
+80,80,metawrap_0_100_bins_UM03_bin.39,Kuala_Lumpur,Corynebacterium_amycolatum
+81,81,metawrap_0_100_bins_UM14_bin.50,Kuala_Lumpur,Corynebacterium_sp022345965
+82,82,metawrap_0_100_bins_AB01_bin.35,Kuala_Koh,Corynebacterium_resistens
+83,83,metawrap_0_100_bins_F09_bin.10,Village F,Novel_OA
+84,84,metawrap_0_100_bins_UM16_bin.56,Kuala_Lumpur,Corynebacterium_otitidis
+85,85,metawrap_0_100_bins_C14_bin.2,Village C,Corynebacterium_propinquum
+86,86,metawrap_0_100_bins_F12_bin.49,Village F,Corynebacterium_striatum
+87,87,C_kef_FDAARGOS1055,Reference,Corynebacterium_kefirresidentii
+88,88,Ctub_FDAARGOS993,Reference,Corynebacterium_tuberculostearicum
+89,89,CTNIH10,Reference,Corynebacterium_tuberculostearicum
+90,90,c_cur,Reference,Corynebacterium_curieae
+91,91,CTNIH23,Reference,Corynebacterium_hallux

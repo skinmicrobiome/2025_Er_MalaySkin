@@ -1,0 +1,150 @@
+import os
+from os.path import join
+import numpy as np
+import pandas as pd
+
+if not os.path.exists("snakemake_logs"):
+    os.mkdir("snakemake_logs")
+
+if not os.path.exists("sbatch_out"):
+    os.makedirs("sbatch_out")
+
+if not os.path.exists("swarm_out"):
+    os.makedirs("swarm_out")
+
+library_id,=glob_wildcards("/data/ery2/skin_batch1/new_seq/{sample}_1.fastq")
+library_id=np.sort(library_id[0:17)
+print(library_id)
+
+DATABASE = "/data/ery2/skin_mag/arc_kraken/kraken_ref_smgc_mags"
+
+
+seq_path = "/data/ery2/skin_batch1/split_seq"
+fastqc_path = "/data/ery2/skin_batch1/fastqc/"
+kraken_path =  "/data/ery2/skin_batch1/kraken_output/"
+bracken_path = "/data/ery2/skin_batch1/braken_output/"
+biom_path="/data/ery2/skin_batch1/biom/"
+multiqc_path="/data/ery2/skin_batch1/multiqc/"
+host_path="/data/ery2/skin_batch1/host/"
+#humann_path="/data/ery2/skin_batch1/humann/"
+
+
+all_outfiles = [
+    expand(join(fastqc_path, "{sample}_1_fastqc.html"), sample=library_id),
+    expand(join(fastqc_path, "{sample}_2_fastqc.html"), sample=library_id),
+    expand(join(kraken_path, "{sample}.kraken"), sample=library_id),
+    expand(join (kraken_path,"{sample}.kreport"),sample=library_id),
+    expand(join(bracken_path, "species/{sample}.bracken"), sample=library_id),
+    expand(join(kraken_path, "{sample}_bracken.kreport"),sample=library_id),
+    expand(join(bracken_path, "{sample}.done.txt"),sample=library_id),
+    join(biom_path,"bracken.biom"),
+    join(multiqc_path, "multiqc_report.html"),
+    expand(join(host_path, "{sample}.kraken"), sample=library_id),
+    expand(join(host_path,"{sample}.kreport"),sample=library_id),
+    expand(join(host_path,"sub_read/{sample}_1.fastq"),sample=library_id),
+     expand(join(host_path,"sub_read/{sample}_2.fastq"),sample=library_id)
+]
+
+rule all:
+    input:
+        all_outfiles
+rule fastqc:
+    input:
+        input1=join(seq_path, "{sample}_2.fastq"),
+        input2=join(seq_path,"{sample}_1.fastq")
+    output:
+        out1=join(fastqc_path, "{sample}_1_fastqc.html"),
+        out2=join(fastqc_path,"{sample}_2_fastqc.html")
+    params:
+        outdir="/data/ery2/skin_batch1/fastqc"
+    threads:
+        2
+    group:
+        "fastqc"
+    shell:
+        """
+        module load fastqc
+        fastqc -t {threads} {input.input1} --outdir {params.outdir}
+        fastqc -t {threads} {input.input2} --outdir {params.outdir}
+        touch {output}
+        """
+rule multi_qc:
+    input:
+        fwd=expand(join(fastqc_path, "{sample}_1_fastqc.html"),sample=library_id),
+        rev=expand(join(fastqc_path,"{sample}_2_fastqc.html"),sample=library_id)
+    output:
+        "/data/ery2/skin_batch1/multiqc/multiqc_report.html"
+    params:
+        o="/data/ery2/skin_batch1/multiqc/",
+        i="/data/ery2/skin_batch1/fastqc/"
+    shell:
+        """
+        module load multiqc
+        multiqc {params.i}  -o {params.o}
+        touch {output}
+        """
+rule kraken_host:
+    input:
+        fwd=join(seq_path, "{sample}_1.fastq"),
+        rev=join(seq_path,"{sample}_2.fastq")
+    output:
+        o=join(host_path, "{sample}.kraken"),
+        r=join(host_path, "{sample}.kreport"),
+        sub_read1=join(host_path,"sub_read/{sample}_1.fastq"),
+        sub_read2=join(host_path,"sub_read/{sample}_2.fastq")
+    params:
+        db="/data/Segrelab/data/kraken_db/20210527_host",
+        unclassified=join(host_path,"sub_read/{sample}")
+    group:
+        "kraken"
+    threads:
+        2
+    shell:
+        """
+        module load kraken
+        kraken2 --db {params.db} --confidence 0.5 --threads {threads} --output {output.o} --report {output.r} --unclassified-out {params.unclassified}#.fastq --paired  {input.fwd} {input.rev} 
+        """
+rule kraken:
+    input:
+        input1=join(host_path,"sub_read/{sample}_1.fastq"),
+        input2=join(host_path,"sub_read/{sample}_2.fastq")
+    output:
+        o=join(kraken_path, "{sample}.kraken"),
+        r=join(kraken_path, "{sample}.kreport")
+    params:
+        db=DATABASE
+    threads:
+        2
+    shell:
+        """
+        kraken2 --db {params.db} --confidence 0.1 --paired {input.input1} {input.input2} --threads {threads} --output {output.o} --report {output.r}
+        """
+rule bracken:
+    input:
+        join(kraken_path, "{sample}.kreport")
+    output:
+        S=join(bracken_path, "species/{sample}.bracken"),
+        outfile=join(bracken_path, "{sample}.done.txt"),
+        report=join(kraken_path, "{sample}_bracken.kreport")
+    params:
+        db=DATABASE
+    group:
+        "bracken"
+    shell:
+        """
+        /data/Segrelab/bwbin/Bracken/bracken -d {params.db} -i {input} -o {output.S} -r 100 -l S -t 10
+        touch {output.outfile}
+        """
+rule bracken_biom:
+    input:
+        expand(join(kraken_path, "{sample}_bracken.kreport"),sample=library_id)
+    output:
+        join(biom_path,"bracken.biom")
+    params:
+        input=join(kraken_path, "*_bracken.kreport")
+    conda:
+        "kraken-biom"
+    shell:
+        """
+        kraken-biom {params.input} -o {output} --max D --fmt json
+        """

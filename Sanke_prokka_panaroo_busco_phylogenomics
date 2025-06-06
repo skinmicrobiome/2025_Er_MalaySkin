@@ -1,0 +1,100 @@
+import os
+from os.path import join
+import numpy as np
+import pandas as pd
+
+if not os.path.exists("snakemake_logs"):
+    os.mkdir("snakemake_logs")
+
+if not os.path.exists("sbatch_out"):
+    os.makedirs("sbatch_out")
+
+if not os.path.exists("swarm_out"):
+    os.makedirs("swarm_out")
+
+library_id,=glob_wildcards("/data/ery2/skin_mag/pan_seq/cory/{sample}.fa")
+library_id=np.sort(library_id[0:67])
+print(library_id)
+
+seq_path = "/data/ery2/skin_mag/pan_seq/cory"
+prokka_output="/data/ery2/skin_mag/pan_seq/prokka2"
+panaroo_dir="/data/ery2/skin_mag/pan_seq/panaroo"
+busco_path="/data/ery2/skin_mag/pan_seq/busco"
+
+all_outfiles = [
+     expand(join(prokka_output, "{sample}/{sample}.gff"),sample=library_id),
+     join(panaroo_dir, "done.txt"),
+     expand(join(busco_path, "{sample}_done.txt"), sample=library_id),
+     directory(join(busco_path, "busco_phylo"))
+]
+
+
+rule all:
+    input:
+        all_outfiles
+rule prokka:
+    input:
+        fwd=join(seq_path, "{sample}.fa")
+    output:
+        join(prokka_output, "{sample}/{sample}.gff"),
+    params:
+        outdir=join(prokka_output, "{sample}"),
+        tag="{sample}"
+    threads:
+        4
+    group:
+        "prokka"
+    shell:
+        """
+        module load prokka
+        prokka --prodigaltf prodigal_training_file {input.fwd} --outdir {params.outdir} --force --prefix {params.tag} --centre X --compliant
+         """
+rule panaroo:
+    input:
+        expand(join(prokka_output, "{sample}/{sample}.gff"),sample=library_id)
+    output:
+        outfile=join(panaroo_dir, "done.txt"),
+        outdir= directory(join(panaroo_dir, "Corynebacterium2")),
+    threads:
+        6
+    group:
+        "panaroo"
+    shell:
+        """
+        panaroo -i {input} -o {output.outdir} --threads {threads} --clean-mode strict --merge_paralogs -c 0.90 --core_threshold 0.90 -f 0.5
+        touch {output.outfile}
+        """
+rule BUSCO:
+    input:
+        join(seq_path,"{sample}.fa")
+    output:
+        outfile=join(busco_path, "{sample}_done.txt")
+    threads:
+        6
+    params:
+        dir="busco/{sample}"
+    group:
+        "BUSCO"
+    shell:
+        """
+        module load busco
+        busco -i {input} -c {threads} -f -m geno --auto-lineage-pro --out {params.dir}
+        touch {output.outfile}
+        """
+rule BUSCO_phylogenomics:
+    input:
+        expand(join(busco_path,"{sample}_done.txt"),sample=library_id)
+    output:
+        outdir=directory(join(busco_path, "busco_phylo"))
+    params:
+        indir=expand(join(busco_path, "{sample}"), sample=library_id)
+    threads:
+        6
+    group:
+        "BUSCO_phylo"
+    conda:
+        "BUSCO_phylo"
+    shell:
+        """
+        python /data/ery2/kits/BUSCO_phylogenomics/BUSCO_phylogenomics.py -i {params.indir} -o {output.outdir} -t {threads} --nt -psc 50 --gene_tree_program iqtree
+        """

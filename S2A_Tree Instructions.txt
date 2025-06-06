@@ -1,0 +1,15 @@
+S2A Tree Instructions:
+
+1. Upload `S2A_tree_coded.nwk` to iTOL: https://itol.embl.de/upload.cgi
+
+2. Upload the following annotation files to the same interface:
+
+   a. S2A_tree_novel_color.txt`
+   b. S2A_tree_phylum_color.txt`
+   c. S2A_tree_drep_bar_count.txt`
+
+Alternatively, download both the tree file and S2A_tree_metadata.csv, then run the following command to generate all required annotation files:
+
+python S2A_tree_python_code.py
+
+

@@ -1,0 +1,97 @@
+import os
+from os.path import join
+import numpy as np
+import pandas as pd
+
+if not os.path.exists("snakemake_logs"):
+    os.mkdir("snakemake_logs")
+
+if not os.path.exists("sbatch_out"):
+    os.makedirs("sbatch_out")
+
+if not os.path.exists("swarm_out"):
+    os.makedirs("swarm_out")
+
+library_id,=glob_wildcards("/data/ery2/skin_batch1/merge_seq/{sample}_1.fastq")
+library_id=np.sort(library_id[0:106])
+print(library_id)
+
+seq_path = "/data/ery2/skin_batch1/comparative/asu_seq/split_seq/merge_seq/"
+spades_output="/data/ery2/skin_mag/asu_data/spade"
+binning_dir="/data/ery2/skin_mag/asu_data/metawrap_binning"
+refining_dir="/data/ery2/skin_mag/asu_data/metawrap_refining"
+
+all_outfiles = [
+     expand(join(spades_output, "{sample}/scaffolds.fasta"),sample=library_id),
+     expand(join(binning_dir,"{sample}/done.txt"),sample=library_id),
+     expand(join(refining_dir, "{sample}/done.txt"),sample=library_id)
+]
+
+
+rule all:
+    input:
+        all_outfiles
+rule spades:
+    input:
+        fwd=join(seq_path, "{sample}_1.fastq"),
+        rev=join(seq_path, "{sample}_2.fastq")
+    output:
+        join(spades_output, "{sample}/scaffolds.fasta"),
+    params:
+        outdir=join(spades_output, "{sample}")
+    threads:
+        4
+    group:
+        "spades"
+    shell:
+        """
+        module load spades
+        metaspades.py -t {threads} --only-assembler -o {params.outdir} -1 {input.fwd} -2 {input.rev}
+        """
+
+checkpoint metawrap_binning:
+  input:
+        fwd=join(seq_path, "{sample}_1.fastq"),
+        rev=join(seq_path, "{sample}_2.fastq"),
+        fasta=join(spades_output, "{sample}/scaffolds.fasta"),
+  output:
+        directory(join(binning_dir, "{sample}")),
+        outfile=join(binning_dir, "{sample}/done.txt"),
+  params:
+        fwd=join(seq_path, "{sample}_1.fastq"),
+        rev=join(seq_path, "{sample}_2.fastq"),
+        outdir=join(binning_dir, "{sample}"),
+        mincontiglength=2500,
+  threads: 
+        4
+  group:
+        "metawrap_binning"
+  shell:
+        """
+        rm -rf {params.outdir}
+        metawrap binning -t {threads} -m 10 \
+        -a {input.fasta} --maxbin2 --metabat2 --concoct \
+        -l {params.mincontiglength} -t {threads} -o {params.outdir} {params.fwd} {params.rev}
+        touch {output.outfile}
+        """
+rule metawrap_refinement:
+    input:
+        join(binning_dir, "{sample}/done.txt")
+    output:
+        outfile=join(refining_dir, "{sample}/done.txt"),
+    params:
+        input1=join(binning_dir, "{sample}/metabat2_bins"),
+        input2=join(binning_dir, "{sample}/maxbin2_bins"),
+        input3=join(binning_dir, "{sample}/concoct_bins"),
+        outdir=join(refining_dir, "{sample}")
+    threads:
+        6
+    group:
+        "bin_refinement"
+    shell:
+        """
+        rm -rf {params.outdir}
+        metawrap bin_refinement -o {params.outdir} -t {threads} -A {params.input1} -B {params.input2} -C {params.input3} -c 0 -x 100
+        touch {output.outfile}
+        """
+

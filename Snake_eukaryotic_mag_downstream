@@ -1,0 +1,134 @@
+import os
+from os.path import join
+import numpy as np
+import pandas as pd
+
+if not os.path.exists("snakemake_logs"):
+    os.mkdir("snakemake_logs")
+
+if not os.path.exists("sbatch_out"):
+    os.makedirs("sbatch_out")
+
+if not os.path.exists("swarm_out"):
+    os.makedirs("swarm_out")
+
+
+data2,=glob_wildcards("/data/ery2/skin_mag/asu_data/drep_euk/drep_out/dereplicated_genomes/{sample}.fa")
+data2=np.sort(data2[0:29])
+print(data2)
+
+
+eukcc_bins="/data/ery2/skin_mag/asu_data/drep_euk/drep_out/dereplicated_genomes/"
+mash_dir="/data/ery2/skin_mag/asu_data/eukcc_execute/mash_out"
+best_mash="/data/ery2/skin_mag/asu_data/eukcc_execute/best_mash"
+dnadiff_dir="/data/ery2/skin_mag/asu_data/eukcc_execute/dnadiff"
+
+all_outfiles = [
+#     join(drep_path,"done.txt"),
+#     expand(join(drep_path,"out/dereplicated_genomes/{euk}.fa"),euk=data2),
+     expand(join(mash_dir, "{euk}.tab"),euk=data2),
+     expand(join(best_mash, "{euk}.tab"),euk=data2),
+     expand(join(dnadiff_dir, "{euk}.report"),euk=data2),
+     expand(join(dnadiff_dir, "tsv/{euk}.tsv"),euk=data2),
+     join(dnadiff_dir, "final/dnadiff_summary.tsv")
+]
+
+
+rule all:
+    input:
+        all_outfiles
+rule mash_dist:
+     input: 
+        in2=expand(join(eukcc_bins,"{euk}.fa"),euk=data2),
+        db="/data/ery2/kits/genbank/genbank_fungi.msh"
+     params:
+        bins=join(eukcc_bins,"{euk}.fa")
+     output:
+        join(mash_dir, "{euk}.tab")
+     threads: 
+        2
+     shell:
+        """   
+        module load mash
+        mash dist -p {threads} {input.db} {params.bins} > {output}
+        """
+
+rule best_mash:
+    input:
+        mashdist=join(mash_dir, "{euk}.tab")
+    output: 
+        join(best_mash, "{euk}.tab")
+    threads: 
+        1
+    shell:
+        """
+        sort -gk3 {input.mashdist}|sed -n 1p >{output}
+        """
+rule dnadiff:
+    input:
+        bestmash=join(best_mash, "{euk}.tab")
+    output: 
+        join(dnadiff_dir, "{euk}.report")
+    params:
+        outdir=dnadiff_dir,
+        bins="{euk}",
+        genomesdir=join(dnadiff_dir, "genomes")
+    shell:
+        """
+        module load mummer
+        mkdir -p {params.genomesdir}
+        while read col1 col2 rem
+          do
+            f="$(basename -- ${{col1}})"
+            echo {params.genomesdir}/${{f%%.gz}}
+            if [ ! -f {params.genomesdir}/${{f%%.gz}} ]; then
+               echo "copying file over"
+               scp ${{col1}} {params.genomesdir}
+               gunzip {params.genomesdir}/${{f}}
+            fi  
+            echo 'dnadiff ${{col1}} ${{col2}} -p ${{col1%%.fasta}}_${{col2%%.fa}}_'
+            dnadiff {params.genomesdir}/${{f%%.gz}} ${{col2}} -p {params.outdir}/{params.bins}
+          done < {input.bestmash}
+        """
+
+rule parse_dnadiff:
+    input:
+        dnadiff=join(dnadiff_dir, "{euk}.report")
+    output:
+        join(dnadiff_dir, "tsv/{euk}.tsv")
+    run:
+        outfile = str(output)
+        f = open(input.dnadiff)
+        data = f.read()
+        first_line = data.split("\n", 1)[0]
+        a = first_line.split(" ")
+        ref = a[0]
+        quer = a[1]
+        with open(outfile, "w") as outf:
+            path_dna = input.dnadiff
+            base = os.path.basename(path_dna)
+            base = base.split(".report")[0]
+            with open(path_dna) as f:
+                for line in f:
+                    if "TotalBases" in line:
+                        cols = line.split()
+                        lenref = int(cols[1])
+                        lenquer = int(cols[2])
+                    if "AlignedBases" in line:
+                        cols = line.split()
+                        aliref = cols[1].split("(")[-1].split("%")[0]
+                        alique = cols[2].split("(")[-1].split("%")[0]
+                    if "AvgIdentity" in line:
+                        cols = line.split()
+                        ident = float(cols[1])
+            line = "%s\t%s\t%i\t%.2f\t%i\t%.2f\t%.2f" % (ref, quer, lenref, float(aliref), lenquer, float(alique), float(ident))
+            outf.writelines(line + "\n")
+rule aggregate_dnadiff:
+    input: 
+        expand(join(dnadiff_dir, "tsv/{euk}.tsv"), euk=data2)
+    output: 
+        join(dnadiff_dir, "final/dnadiff_summary.tsv")
+    shell:
+        """
+        cat {input}>{output}
+        """
